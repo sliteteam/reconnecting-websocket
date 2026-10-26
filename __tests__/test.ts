@@ -893,14 +893,19 @@ test('reconnect delivers the close of a socket that closed without dispatching i
     ws.addEventListener('open', () => {
         events.push('open');
         if (events.length === 1) {
-            // @ts-ignore
-            Object.defineProperty(ws._ws, 'readyState', {value: ws.CLOSED});
+            const closedSocket = (ws as any)._ws;
+            Object.defineProperty(closedSocket, 'readyState', {value: ws.CLOSED});
             ws.reconnect();
+            // the browser dispatches the real close late, after the reconnection
+            closedSocket.emit('close', 1006, '');
             return;
         }
-        expect(events).toEqual(['open', 'close', 'open']);
+        const received = [...events];
         ws.close();
-        wss.close(() => done());
+        wss.close(() => {
+            expect(received).toEqual(['open', 'close', 'open']);
+            done();
+        });
     });
     ws.addEventListener('close', () => {
         events.push('close');
