@@ -884,3 +884,25 @@ test('reconnect after closing', done => {
         }
     });
 });
+
+test('reconnect delivers the close of a socket that closed without dispatching it yet', done => {
+    const wss = new WebSocketServer({port: PORT});
+    const ws = new ReconnectingWebSocket(URL);
+    const events: string[] = [];
+
+    ws.addEventListener('open', () => {
+        events.push('open');
+        if (events.length === 1) {
+            // @ts-ignore
+            Object.defineProperty(ws._ws, 'readyState', {value: ws.CLOSED});
+            ws.reconnect();
+            return;
+        }
+        expect(events).toEqual(['open', 'close', 'open']);
+        ws.close();
+        wss.close(() => done());
+    });
+    ws.addEventListener('close', () => {
+        events.push('close');
+    });
+});

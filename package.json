@@ -1,6 +1,6 @@
 {
     "name": "@slite/reconnecting-websocket",
-    "version": "4.4.1",
+    "version": "4.4.2",
     "description": "Slite's Reconnecting WebSocket",
     "main": "./dist/reconnecting-websocket-cjs.js",
     "module": "./dist/reconnecting-websocket-mjs.js",

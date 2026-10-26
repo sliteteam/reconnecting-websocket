@@ -76,6 +76,7 @@ export default class ReconnectingWebSocket {
     private _connectLock = false;
     private _binaryType: BinaryType = 'blob';
     private _closeCalled = false;
+    private _closeHandled = false;
     private _messageQueue: Message[] = [];
 
     private readonly _url: UrlProvider;
@@ -240,12 +241,12 @@ export default class ReconnectingWebSocket {
         this._shouldReconnect = true;
         this._closeCalled = false;
         this._retryCount = -1;
-        if (!this._ws || this._ws.readyState === this.CLOSED) {
-            this._connect();
-        } else {
+        // readyState turns CLOSED before the browser dispatches `close` (a frozen tab gets it on
+        // resume), and _connect removes the listeners that would deliver it
+        if (this._ws && !this._closeHandled) {
             this._disconnect(code, reason);
-            this._connect();
         }
+        this._connect();
     }
 
     /**
@@ -386,6 +387,7 @@ export default class ReconnectingWebSocket {
                     this._ws = this._protocols
                         ? new WebSocket(url, this._protocols)
                         : new WebSocket(url);
+                    this._closeHandled = false;
                     this._ws!.binaryType = this._binaryType;
                     this._connectLock = false;
                     this._addListeners();
@@ -486,6 +488,7 @@ export default class ReconnectingWebSocket {
 
     private _handleClose = (event: Events.CloseEvent) => {
         this._debug('close event');
+        this._closeHandled = true;
         this._clearTimeouts();
 
         if (this._shouldReconnect) {
